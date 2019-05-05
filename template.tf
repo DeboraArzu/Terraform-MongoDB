@@ -14,15 +14,16 @@ resource "aws_vpc" "MongoVpc" {
   }
 }
 
-resource "aws_internet_gateway" "nat_gateway" {
+resource "aws_internet_gateway" "Internet_GW" {
   vpc_id = "${aws_vpc.MongoVpc.id}"
 }
 
 # public subnets
 resource "aws_subnet" "us_east_1a_public" {
-  vpc_id            = "${aws_vpc.MongoVpc.id}"
-  cidr_block        = "10.0.1.0/24"
-  availability_zone = "us-east-1a"
+  vpc_id                  = "${aws_vpc.MongoVpc.id}"
+  cidr_block              = "10.0.1.0/24"
+  availability_zone       = "us-east-1a"
+  map_public_ip_on_launch = "true"
 
   tags = {
     Name = "us_east_1a_public"
@@ -30,9 +31,10 @@ resource "aws_subnet" "us_east_1a_public" {
 }
 
 resource "aws_subnet" "us_east_1b_public" {
-  vpc_id            = "${aws_vpc.MongoVpc.id}"
-  cidr_block        = "10.0.2.0/24"
-  availability_zone = "us-east-1b"
+  vpc_id                  = "${aws_vpc.MongoVpc.id}"
+  cidr_block              = "10.0.2.0/24"
+  availability_zone       = "us-east-1b"
+  map_public_ip_on_launch = "true"
 
   tags = {
     Name = "us_east_1b_public"
@@ -40,9 +42,10 @@ resource "aws_subnet" "us_east_1b_public" {
 }
 
 resource "aws_subnet" "us_east_1c_public" {
-  vpc_id            = "${aws_vpc.MongoVpc.id}"
-  cidr_block        = "10.0.3.0/24"
-  availability_zone = "us-east-1c"
+  vpc_id                  = "${aws_vpc.MongoVpc.id}"
+  cidr_block              = "10.0.3.0/24"
+  availability_zone       = "us-east-1c"
+  map_public_ip_on_launch = "true"
 
   tags = {
     Name = "us_east_1c_public"
@@ -56,7 +59,7 @@ resource "aws_route_table" "us-east-1-public" {
 
   route {
     cidr_block = "0.0.0.0/0"
-    gateway_id = "${aws_internet_gateway.nat_gateway.id}"
+    gateway_id = "${aws_internet_gateway.Internet_GW.id}"
   }
 
   tags = {
@@ -115,12 +118,29 @@ resource "aws_subnet" "us_east_1c_private" {
 
 # Routing table for private subnets
 
+resource "aws_eip" "nat_1a" {
+  # instance = "${aws_instance.Mongoinstance_1a.id}"
+  vpc = true
+}
+
+resource "aws_nat_gateway" "Nat_GW" {
+  allocation_id = "${aws_eip.nat_1a.id}"
+  subnet_id     = "${aws_subnet.us_east_1a_public.id}"
+  depends_on    = ["aws_internet_gateway.Internet_GW"]
+
+  tags = {
+    Name = "Nat_GW"
+  }
+}
+
+# VPC for NAT
+
 resource "aws_route_table" "us-east-1-private" {
   vpc_id = "${aws_vpc.MongoVpc.id}"
 
   route {
-    cidr_block  = "0.0.0.0/0"
-    instance_id = "${aws_instance.Mongoinstance_1a.id}"
+    cidr_block     = "0.0.0.0/0"
+    nat_gateway_id = "${aws_nat_gateway.Nat_GW.id}"
   }
 
   tags = {
@@ -186,20 +206,6 @@ resource "aws_instance" "Mongoinstance_1c" {
 
   tags {
     Name = "Mongoinstace 1c private"
-  }
-}
-
-resource "aws_eip" "nat_1a" {
-  instance = "${aws_instance.Mongoinstance_1a.id}"
-  vpc      = true
-}
-
-resource "aws_nat_gateway" "gw" {
-  allocation_id = "${aws_eip.nat_1a.id}"
-  subnet_id     = "${aws_subnet.us_east_1a_public.id}"
-
-  tags = {
-    Name = "gw NAT"
   }
 }
 

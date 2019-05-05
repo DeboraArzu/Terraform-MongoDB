@@ -120,7 +120,7 @@ resource "aws_route_table" "us-east-1-private" {
 
   route {
     cidr_block  = "0.0.0.0/0"
-    instance_id = "${aws_instance.Mongoinstance.id}"
+    instance_id = "${aws_instance.Mongoinstance_1a.id}"
   }
 
   tags = {
@@ -197,7 +197,6 @@ resource "aws_eip" "nat_1a" {
 resource "aws_nat_gateway" "gw" {
   allocation_id = "${aws_eip.nat_1a.id}"
   subnet_id     = "${aws_subnet.us_east_1a_public.id}"
-  depends_on    = ["aws_internet_gateway.nat_gateway"]
 
   tags = {
     Name = "gw NAT"
@@ -231,9 +230,5 @@ resource "aws_security_group" "MongSG" {
 
 #output
 output "public_ip" {
-  value = "${aws_instance.Mongoinstance.public_ip}"
-}
-
-output "public_dns" {
-  value = "${aws_instance.Mongoinstance.public_dns}"
+  value = "${aws_eip.nat_1a.public_ip}"
 }

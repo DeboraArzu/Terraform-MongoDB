@@ -165,9 +165,9 @@ resource "aws_route_table_association" "us_east_1c_private" {
 
 # Instances in a private subnet
 resource "aws_instance" "Mongoinstance_1a" {
-  ami                         = "ami-0b33d91d"                        # Amazon Linux AMI
+  ami                         = "${var.ami}"                          # Amazon Linux AMI
   availability_zone           = "us-east-1a"
-  instance_type               = "t2.micro"
+  instance_type               = "${var.instance_type}"
   key_name                    = "${var.aws_key_name}"
   security_groups             = ["${aws_security_group.MongSG.id}"]
   subnet_id                   = "${aws_subnet.us_east_1a_private.id}"
@@ -181,9 +181,9 @@ resource "aws_instance" "Mongoinstance_1a" {
 }
 
 resource "aws_instance" "Mongoinstance_1b" {
-  ami                         = "ami-0b33d91d"                        # Amazon Linux AMI
+  ami                         = "${var.ami}"                          # Amazon Linux AMI
   availability_zone           = "us-east-1b"
-  instance_type               = "t2.micro"
+  instance_type               = "${var.instance_type}"
   key_name                    = "${var.aws_key_name}"
   security_groups             = ["${aws_security_group.MongSG.id}"]
   subnet_id                   = "${aws_subnet.us_east_1b_private.id}"
@@ -197,9 +197,9 @@ resource "aws_instance" "Mongoinstance_1b" {
 }
 
 resource "aws_instance" "Mongoinstance_1c" {
-  ami                         = "ami-0b33d91d"                        # Amazon Linux AMI
+  ami                         = "${var.ami}"                          # Amazon Linux AMI
   availability_zone           = "us-east-1c"
-  instance_type               = "t2.micro"
+  instance_type               = "${var.instance_type}"
   key_name                    = "${var.aws_key_name}"
   security_groups             = ["${aws_security_group.MongSG.id}"]
   subnet_id                   = "${aws_subnet.us_east_1c_private.id}"
@@ -262,17 +262,31 @@ resource "aws_security_group" "BastionSG" {
   }
 }
 
-#Bastion
-resource "aws_instance" "Bastion" {
-  ami                         = "ami-0b33d91d"                         # Amazon Linux AMI
-  instance_type               = "t2.micro"
-  associate_public_ip_address = true
-  key_name                    = "${var.aws_key_name}"
-  security_groups             = ["${aws_security_group.BastionSG.id}"]
-  subnet_id                   = "${aws_subnet.us_east_1a_public.id}"
+# Bastion in AutoScaling Group
+resource "aws_launch_template" "Bastion_LT" {
+  name                   = "bastion_LT"
+  image_id               = "${var.ami}"
+  instance_type          = "${var.instance_type}"
+  key_name               = "${var.aws_key_name}"
+  vpc_security_group_ids = ["${aws_security_group.BastionSG.id}"]
 
-  tags {
-    Name = "Bastion"
+  tags = {
+    Name = "Bastion_LT"
+  }
+}
+
+resource "aws_autoscaling_group" "bar" {
+  availability_zones = ["us-east-1a"]
+  max_size           = 3
+  min_size           = 1
+
+  launch_template {
+    id      = "${aws_launch_template.Bastion_LT.id}"
+    version = "$Latest"
+  }
+
+  tags = {
+    name = "Bastion"
   }
 }
 

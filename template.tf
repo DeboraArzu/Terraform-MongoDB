@@ -163,7 +163,7 @@ resource "aws_route_table_association" "us_east_1c_private" {
   route_table_id = "${aws_route_table.us-east-1-private.id}"
 }
 
-# Instances in a private subnet
+# MongoDB in a Cluster 
 resource "aws_instance" "Mongoinstance_1a" {
   ami                         = "${var.ami}"                          # Amazon Linux AMI
   availability_zone           = "us-east-1a"
@@ -176,7 +176,39 @@ resource "aws_instance" "Mongoinstance_1a" {
   user_data                   = "${file("install_mongoDB.sh")}"
 
   tags {
-    Name = "Mongoinstace 1a private"
+    Name = "Mongoinstace_1a_private"
+  }
+}
+
+resource "aws_instance" "Mongoinstance_1b" {
+  ami                         = "${var.ami}"                          # Amazon Linux AMI
+  availability_zone           = "us-east-1b"
+  instance_type               = "${var.instance_type}"
+  key_name                    = "${var.aws_key_name}"
+  security_groups             = ["${aws_security_group.MongSG.id}"]
+  subnet_id                   = "${aws_subnet.us_east_1b_private.id}"
+  associate_public_ip_address = false
+  source_dest_check           = false
+  user_data                   = "${file("install_mongoDB.sh")}"
+
+  tags {
+    Name = "Mongoinstace_1b_private"
+  }
+}
+
+resource "aws_instance" "Mongoinstance_1c" {
+  ami                         = "${var.ami}"                          # Amazon Linux AMI
+  availability_zone           = "us-east-1c"
+  instance_type               = "${var.instance_type}"
+  key_name                    = "${var.aws_key_name}"
+  security_groups             = ["${aws_security_group.MongSG.id}"]
+  subnet_id                   = "${aws_subnet.us_east_1c_private.id}"
+  associate_public_ip_address = false
+  source_dest_check           = false
+  user_data                   = "${file("install_mongoDB.sh")}"
+
+  tags {
+    Name = "Mongoinstace_1c_private"
   }
 }
 
@@ -260,7 +292,14 @@ resource "aws_autoscaling_group" "Bastion" {
   }
 }
 
-#output
-output "Mongo1_private_ip" {
-  value = "${aws_instance.Mongoinstance_1a.private_ip}"
+output "Mongo1a_IP" {
+  value = "${aws_instance.Mongoinstance_1a.public_ip}"
+}
+
+output "Mongo1b_IP" {
+  value = "${aws_instance.Mongoinstance_1b.public_ip}"
+}
+
+output "Mongo1c_IP" {
+  value = "${aws_instance.Mongoinstance_1c.public_ip}"
 }

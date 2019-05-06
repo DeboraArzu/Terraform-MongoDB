@@ -292,14 +292,15 @@ resource "aws_autoscaling_group" "Bastion" {
   }
 }
 
-output "Mongo1a_IP" {
-  value = "${aws_instance.Mongoinstance_1a.public_ip}"
+#output
+output "Mongo1_private_ip" {
+  value = "${aws_instance.Mongoinstance_1a.private_ip}"
 }
 
-output "Mongo1b_IP" {
-  value = "${aws_instance.Mongoinstance_1b.public_ip}"
+output "Mongo2_private_ip" {
+  value = "${aws_instance.Mongoinstance_1b.private_ip}"
 }
 
-output "Mongo1c_IP" {
-  value = "${aws_instance.Mongoinstance_1c.public_ip}"
+output "Mongo3_private_ip" {
+  value = "${aws_instance.Mongoinstance_1c.private_ip}"
 }

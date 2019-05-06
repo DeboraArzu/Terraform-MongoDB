@@ -173,6 +173,7 @@ resource "aws_instance" "Mongoinstance_1a" {
   subnet_id                   = "${aws_subnet.us_east_1a_private.id}"
   associate_public_ip_address = false
   source_dest_check           = false
+  user_data                   = "${file("install_mongoDB.sh")}"
 
   tags {
     Name = "Mongoinstace 1a private"
@@ -188,6 +189,7 @@ resource "aws_instance" "Mongoinstance_1b" {
   subnet_id                   = "${aws_subnet.us_east_1b_private.id}"
   associate_public_ip_address = false
   source_dest_check           = false
+  user_data                   = "${file("install_mongoDB.sh")}"
 
   tags {
     Name = "Mongoinstace 1b private"
@@ -203,6 +205,7 @@ resource "aws_instance" "Mongoinstance_1c" {
   subnet_id                   = "${aws_subnet.us_east_1c_private.id}"
   associate_public_ip_address = false
   source_dest_check           = false
+  user_data                   = "${file("install_mongoDB.sh")}"
 
   tags {
     Name = "Mongoinstace 1c private"
@@ -261,22 +264,31 @@ resource "aws_security_group" "BastionSG" {
 
 #Bastion
 resource "aws_instance" "Bastion" {
-  ami                         = "ami-0b33d91d"                       # Amazon Linux AMI
+  ami                         = "ami-0b33d91d"                         # Amazon Linux AMI
   instance_type               = "t2.micro"
   associate_public_ip_address = true
   key_name                    = "${var.aws_key_name}"
   security_groups             = ["${aws_security_group.BastionSG.id}"]
   subnet_id                   = "${aws_subnet.us_east_1a_public.id}"
+
   tags {
     Name = "Bastion"
   }
 }
 
 #output
-output "public_ip" {
-  value = "${aws_eip.nat_1a.public_ip}"
-}
-
 output "bastion_public_ip" {
   value = "${aws_instance.Bastion.public_ip}"
+}
+
+output "Mongo1_private_ip" {
+  value = "${aws_instance.Mongoinstance_1a.private_ip}"
+}
+
+output "Mongo2_private_ip" {
+  value = "${aws_instance.Mongoinstance_1b.private_ip}"
+}
+
+output "Mongo3_private_ip" {
+  value = "${aws_instance.Mongoinstance_1c.private_ip}"
 }

@@ -133,7 +133,7 @@ resource "aws_nat_gateway" "Nat_GW" {
   }
 }
 
-# VPC for NAT
+# NAT GateWay for the private instances
 
 resource "aws_route_table" "us-east-1-private" {
   vpc_id = "${aws_vpc.MongoVpc.id}"
@@ -163,7 +163,7 @@ resource "aws_route_table_association" "us_east_1c_private" {
   route_table_id = "${aws_route_table.us-east-1-private.id}"
 }
 
-# Instances
+# Instances in a private subnet
 resource "aws_instance" "Mongoinstance_1a" {
   ami                         = "ami-0b33d91d"                        # Amazon Linux AMI
   availability_zone           = "us-east-1a"
@@ -211,19 +211,19 @@ resource "aws_instance" "Mongoinstance_1c" {
 
 resource "aws_security_group" "MongSG" {
   name        = "MongSG"
-  description = "Allow services from the private subnet through NAT"
+  description = "Allow the Bastion to SSH"
 
   ingress {
-    from_port   = 0
-    to_port     = 65535
-    protocol    = "tcp"
-    cidr_blocks = ["${aws_subnet.us_east_1b_private.cidr_block}"]
+    from_port       = 22
+    to_port         = 22
+    protocol        = "tcp"
+    security_groups = ["${aws_security_group.BastionSG.id}"]
   }
 
-  ingress {
-    from_port   = 22
-    to_port     = 22
-    protocol    = "tcp"
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
     cidr_blocks = ["0.0.0.0/0"]
   }
 
@@ -234,7 +234,49 @@ resource "aws_security_group" "MongSG" {
   }
 }
 
+resource "aws_security_group" "BastionSG" {
+  name        = "BastionSG"
+  description = "Allow services from the private subnet through NAT"
+
+  ingress {
+    from_port   = 22
+    to_port     = 22
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  egress {
+    protocol    = -1
+    from_port   = 0
+    to_port     = 0
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  vpc_id = "${aws_vpc.MongoVpc.id}"
+
+  tags {
+    Name = "BastionSG"
+  }
+}
+
+#Bastion
+resource "aws_instance" "Bastion" {
+  ami                         = "ami-0b33d91d"                       # Amazon Linux AMI
+  instance_type               = "t2.micro"
+  associate_public_ip_address = true
+  key_name                    = "${var.aws_key_name}"
+  security_groups             = ["${aws_security_group.BastionSG.id}"]
+  subnet_id                   = "${aws_subnet.us_east_1a_public.id}"
+  tags {
+    Name = "Bastion"
+  }
+}
+
 #output
 output "public_ip" {
   value = "${aws_eip.nat_1a.public_ip}"
+}
+
+output "bastion_public_ip" {
+  value = "${aws_instance.Bastion.public_ip}"
 }

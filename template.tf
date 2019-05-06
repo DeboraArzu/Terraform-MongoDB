@@ -180,38 +180,6 @@ resource "aws_instance" "Mongoinstance_1a" {
   }
 }
 
-resource "aws_instance" "Mongoinstance_1b" {
-  ami                         = "${var.ami}"                          # Amazon Linux AMI
-  availability_zone           = "us-east-1b"
-  instance_type               = "${var.instance_type}"
-  key_name                    = "${var.aws_key_name}"
-  security_groups             = ["${aws_security_group.MongSG.id}"]
-  subnet_id                   = "${aws_subnet.us_east_1b_private.id}"
-  associate_public_ip_address = false
-  source_dest_check           = false
-  user_data                   = "${file("install_mongoDB.sh")}"
-
-  tags {
-    Name = "Mongoinstace 1b private"
-  }
-}
-
-resource "aws_instance" "Mongoinstance_1c" {
-  ami                         = "${var.ami}"                          # Amazon Linux AMI
-  availability_zone           = "us-east-1c"
-  instance_type               = "${var.instance_type}"
-  key_name                    = "${var.aws_key_name}"
-  security_groups             = ["${aws_security_group.MongSG.id}"]
-  subnet_id                   = "${aws_subnet.us_east_1c_private.id}"
-  associate_public_ip_address = false
-  source_dest_check           = false
-  user_data                   = "${file("install_mongoDB.sh")}"
-
-  tags {
-    Name = "Mongoinstace 1c private"
-  }
-}
-
 resource "aws_security_group" "MongSG" {
   name        = "MongSG"
   description = "Allow the Bastion to SSH"
@@ -275,34 +243,24 @@ resource "aws_launch_template" "Bastion_LT" {
   }
 }
 
-resource "aws_autoscaling_group" "bar" {
-  availability_zones = ["us-east-1a"]
-  max_size           = 3
-  min_size           = 1
+resource "aws_autoscaling_group" "Bastion" {
+  max_size            = 3
+  min_size            = 1
+  vpc_zone_identifier = ["${aws_subnet.us_east_1a_public.id}", "${aws_subnet.us_east_1b_public.id}", "${aws_subnet.us_east_1c_public.id}"]
 
   launch_template {
     id      = "${aws_launch_template.Bastion_LT.id}"
-    version = "$Latest"
+    version = "${aws_launch_template.Bastion_LT.latest_version}"
   }
 
-  tags = {
-    name = "Bastion"
+  tag {
+    key                 = "Name"
+    value               = "Bastion"
+    propagate_at_launch = true
   }
 }
 
 #output
-output "bastion_public_ip" {
-  value = "${aws_instance.Bastion.public_ip}"
-}
-
 output "Mongo1_private_ip" {
   value = "${aws_instance.Mongoinstance_1a.private_ip}"
-}
-
-output "Mongo2_private_ip" {
-  value = "${aws_instance.Mongoinstance_1b.private_ip}"
-}
-
-output "Mongo3_private_ip" {
-  value = "${aws_instance.Mongoinstance_1c.private_ip}"
 }

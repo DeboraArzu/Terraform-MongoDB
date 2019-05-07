@@ -310,6 +310,86 @@ resource "aws_eip" "eip_bastion" {
   vpc = true
 }
 
+# Role for the bastion
+resource "aws_iam_role" "terraform_role" {
+  name = "terraform_role"
+
+  assume_role_policy = <<EOF
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Action": "sts:AssumeRole",
+      "Principal": {
+        "Service": "ec2.amazonaws.com"
+      },
+      "Effect": "Allow",
+      "Sid": ""
+    }
+  ]
+}
+EOF
+
+  tags = {
+    tag-key = "terraformRole"
+  }
+}
+
+resource "aws_iam_policy" "policy" {
+  name        = "Ec2-policy"
+  description = "Allow Ec2 services"
+
+  policy = <<EOF
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Action": "ec2:*",
+            "Effect": "Allow",
+            "Resource": "*"
+        },
+        {
+            "Effect": "Allow",
+            "Action": "elasticloadbalancing:*",
+            "Resource": "*"
+        },
+        {
+            "Effect": "Allow",
+            "Action": "cloudwatch:*",
+            "Resource": "*"
+        },
+        {
+            "Effect": "Allow",
+            "Action": "autoscaling:*",
+            "Resource": "*"
+        },
+        {
+            "Effect": "Allow",
+            "Action": "iam:CreateServiceLinkedRole",
+            "Resource": "*",
+            "Condition": {
+                "StringEquals": {
+                    "iam:AWSServiceName": [
+                        "autoscaling.amazonaws.com",
+                        "ec2scheduled.amazonaws.com",
+                        "elasticloadbalancing.amazonaws.com",
+                        "spot.amazonaws.com",
+                        "spotfleet.amazonaws.com",
+                        "transitgateway.amazonaws.com"
+                    ]
+                }
+            }
+        }
+    ]
+}
+EOF
+}
+
+resource "aws_iam_role_policy_attachment" "policy-attach" {
+  role       = "${aws_iam_role.terraform_role.name}"
+  policy_arn = "${aws_iam_policy.policy.arn}"
+}
+
 resource "aws_launch_configuration" "Bastion_LC" {
   name                        = "bastion_LC"
   image_id                    = "${var.ami}"
@@ -328,6 +408,12 @@ resource "aws_autoscaling_group" "Bastion" {
   min_size             = 1
   vpc_zone_identifier  = ["${aws_subnet.us_east_1a_public.id}", "${aws_subnet.us_east_1b_public.id}", "${aws_subnet.us_east_1c_public.id}"]
   launch_configuration = "${aws_launch_configuration.Bastion_LC.name}"
+
+  initial_lifecycle_hook = {
+    name                 = "lifecycle"
+    lifecycle_transition = "autoscaling:EC2_INSTANCE_LAUNCHING"
+    role_arn             = "${aws_iam_role.terraform_role.arn}"
+  }
 
   tag {
     key                 = "Name"

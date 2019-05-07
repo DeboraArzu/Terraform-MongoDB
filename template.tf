@@ -4,11 +4,6 @@ provider "aws" {
   region     = "${var.region}"
 }
 
-resource "aws_key_pair" "terraform_ec2_key" {
-  key_name   = "terraform_ec2_key"
-  public_key = "${file("./key/terraform_ec2_key.pub")}"
-}
-
 resource "aws_vpc" "MongoVpc" {
   cidr_block           = "10.0.0.0/16"
   enable_dns_support   = true

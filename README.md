@@ -1,7 +1,8 @@
 # AWS architecture
+The architecture show below was created using terraform and AWS as provider.
+
 ![architecture](https://github.com/DeboraArzu/Terraform-MongoDB/blob/master/architecture.jpg "Diagram")
 
-The architecture show above was created using terraform and AWS as provider.
 
 # Initial Setup
 ```bash

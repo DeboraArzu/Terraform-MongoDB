@@ -4,6 +4,11 @@ provider "aws" {
   region     = "${var.region}"
 }
 
+resource "aws_key_pair" "terraform-key" {
+  key_name   = "terraform-key"
+  public_key = "${file("./key/public_terraform.pem")}"
+}
+
 resource "aws_vpc" "MongoVpc" {
   cidr_block           = "10.0.0.0/16"
   enable_dns_support   = true
@@ -164,7 +169,7 @@ resource "aws_route_table_association" "us_east_1c_private" {
 
 # MongoDB in a Cluster 
 resource "aws_instance" "Mongo_Master" {
-  ami                         = "${var.ami}"                                               # Amazon Linux AMI
+  ami                         = "${var.ami}"                                                                                # Amazon Linux AMI
   availability_zone           = "us-east-1a"
   instance_type               = "${var.instance_type_mongo}"
   key_name                    = "${var.aws_key_name}"
@@ -173,21 +178,20 @@ resource "aws_instance" "Mongo_Master" {
   associate_public_ip_address = false
   source_dest_check           = false
   user_data                   = "${data.template_file.user_data.rendered}"
-  depends_on                  = ["aws_instance.Mongo_Slave1", "aws_instance.Mongo_Slave2"]
+  depends_on                  = ["aws_instance.Mongo_Slave1", "aws_instance.Mongo_Slave2", "aws_autoscaling_group.Bastion"]
 
-  # connection {
-  #   bastion_host = "${aws_eip.eip_bastion.id}"
-  #   host         = "${self.private_ip}"
-  #   type         = "ssh"
-  #   user         = "ec2-user"
-  #   private_key  = "${file("key/opsworks.pem")}"
-  # }
+  connection {
+    bastion_host = "${aws_eip.eip_bastion.public_ip}"
+    host         = "${self.private_ip}"
+    type         = "ssh"
+    user         = "ec2-user"
+    private_key  = "${file("key/opsworks.pem")}"
+  }
 
-
-  # provisioner "file" {
-  #   source      = "./configuration_files/mongod.conf"
-  #   destination = "/home/ec2-user/mongod.conf"
-  # }
+  provisioner "file" {
+    source      = "./configuration_files/mongod.conf"
+    destination = "/home/ec2-user/mongod.conf"
+  }
 
   tags {
     Name = "Mongo_Master"
@@ -198,8 +202,8 @@ data "template_file" "user_data" {
   template = "${file("./scripts/install_mongoMaster.sh")}"
 
   vars {
-    instance1 = "${aws_instance.Mongo_Slave1.private_ip}"
-    instance2 = "${aws_instance.Mongo_Slave2.private_ip}"
+    INSTANCE1 = "${aws_instance.Mongo_Slave1.private_ip}"
+    INSTANCE2 = "${aws_instance.Mongo_Slave2.private_ip}"
   }
 }
 
@@ -293,43 +297,37 @@ resource "aws_security_group" "BastionSG" {
   }
 }
 
-# Bastion in AutoScaling Group
+# Bastion in AutoScaling Group 
+data "template_file" "user_data_bastion" {
+  template = "${file("./scripts/bastion_userdata.sh")}"
+
+  vars {
+    EIP_ID = "${aws_eip.eip_bastion.id}"
+  }
+}
+
 resource "aws_eip" "eip_bastion" {
-  vpc               = true
-  network_interface = "${aws_network_interface.network_bastion.id}"
+  vpc = true
 }
 
-resource "aws_network_interface" "network_bastion" {
-  subnet_id = "${aws_subnet.us_east_1a_public.id}"
-}
+resource "aws_launch_configuration" "Bastion_LC" {
+  name                        = "bastion_LC"
+  image_id                    = "${var.ami}"
+  instance_type               = "${var.instance_type}"
+  key_name                    = "${var.aws_key_name}"
+  security_groups             = ["${aws_security_group.BastionSG.id}"]
+  associate_public_ip_address = false
 
-resource "aws_launch_template" "Bastion_LT" {
-  name          = "bastion_LT"
-  image_id      = "${var.ami}"
-  instance_type = "${var.instance_type}"
-  key_name      = "${var.aws_key_name}"
-
-  #vpc_security_group_ids = ["${aws_security_group.BastionSG.id}"]
-
-  network_interfaces {
-    associate_public_ip_address = false
-    network_interface_id        = "${aws_network_interface.network_bastion.id}"
-    security_groups             = ["${aws_security_group.BastionSG.id}"]
-  }
-  tags = {
-    Name = "Bastion_LT"
-  }
+  #user_data       = "${file("./scripts/bastion_userdata.sh")}"
+  user_data  = "${data.template_file.user_data_bastion.rendered}"
+  depends_on = ["aws_eip.eip_bastion"]
 }
 
 resource "aws_autoscaling_group" "Bastion" {
-  max_size            = 3
-  min_size            = 1
-  vpc_zone_identifier = ["${aws_subnet.us_east_1a_public.id}", "${aws_subnet.us_east_1b_public.id}", "${aws_subnet.us_east_1c_public.id}"]
-
-  launch_template {
-    id      = "${aws_launch_template.Bastion_LT.id}"
-    version = "${aws_launch_template.Bastion_LT.latest_version}"
-  }
+  max_size             = 3
+  min_size             = 1
+  vpc_zone_identifier  = ["${aws_subnet.us_east_1a_public.id}", "${aws_subnet.us_east_1b_public.id}", "${aws_subnet.us_east_1c_public.id}"]
+  launch_configuration = "${aws_launch_configuration.Bastion_LC.name}"
 
   tag {
     key                 = "Name"

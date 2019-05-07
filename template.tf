@@ -255,7 +255,7 @@ resource "aws_security_group" "MongSG" {
     from_port       = 0
     to_port         = 0
     protocol        = "-1"
-    security_groups = ["${aws_security_group.BastionSG.id}"] # all traffic just from the bastion
+    cidr_blocks = ["${aws_instance.Mongo_Slave1.private_ip}","${aws_instance.Mongo_Slave2.private_ip}","${aws_instance.Mongo_Master.private_ip}"] # all traffic just from the bastion
   }
 
   egress {

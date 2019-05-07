@@ -1,5 +1,5 @@
-# Terraform-MongoDB
-Terraform exercise using AWS provider to launch this architecture https://docs.aws.amazon.com/quickstart/latest/mongodb/architecture.html
+# AWS architecture
+![architecture](https://github.com/DeboraArzu/Terraform-MongoDB/tree/master/architecture/architecture.PNG "architecture")
 
 # Initial Setup
 ```bash

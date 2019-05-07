@@ -252,10 +252,10 @@ resource "aws_security_group" "MongSG" {
   }
 
   ingress {
-    from_port       = 0
-    to_port         = 0
-    protocol        = "-1"
-    cidr_blocks = ["0.0.0.0/0"] 
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
   }
 
   egress {
@@ -409,7 +409,7 @@ resource "aws_autoscaling_group" "Bastion" {
   vpc_zone_identifier  = ["${aws_subnet.us_east_1a_public.id}", "${aws_subnet.us_east_1b_public.id}", "${aws_subnet.us_east_1c_public.id}"]
   launch_configuration = "${aws_launch_configuration.Bastion_LC.name}"
 
-  initial_lifecycle_hook = {
+  initial_lifecycle_hook {
     name                 = "lifecycle"
     lifecycle_transition = "autoscaling:EC2_INSTANCE_LAUNCHING"
     role_arn             = "${aws_iam_role.terraform_role.arn}"
@@ -423,6 +423,10 @@ resource "aws_autoscaling_group" "Bastion" {
 }
 
 #output
+output "Bastion_IP" {
+  value = "${aws_eip.eip_bastion.public_ip}"
+}
+
 output "Mongo1a_private_ip" {
   value = "${aws_instance.Mongo_Master.private_ip}"
 }

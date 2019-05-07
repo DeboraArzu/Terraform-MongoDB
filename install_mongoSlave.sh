@@ -8,6 +8,6 @@ enabled=1
 gpgkey=https://www.mongodb.org/static/pgp/server-4.0.asc" | sudo tee /etc/yum.repos.d/mongodb-org-4.0.repo
 yum install -y mongodb-org
 yum install libcurl openssl
+cp /home/ec2-user/mongod.conf /etc/mongod.conf
 service mongod start
 chkconfig mongod on
-

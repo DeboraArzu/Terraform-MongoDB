@@ -119,7 +119,7 @@ resource "aws_subnet" "us_east_1c_private" {
 # Routing table for private subnets
 
 resource "aws_eip" "nat_1a" {
-  # instance = "${aws_instance.Mongoinstance_1a.id}"
+  # instance = "${aws_instance.Mongo_Master.id}"
   vpc = true
 }
 
@@ -164,7 +164,7 @@ resource "aws_route_table_association" "us_east_1c_private" {
 }
 
 # MongoDB in a Cluster 
-resource "aws_instance" "Mongoinstance_1a" {
+resource "aws_instance" "Mongo_Master" {
   ami                         = "${var.ami}"                          # Amazon Linux AMI
   availability_zone           = "us-east-1a"
   instance_type               = "${var.instance_type}"
@@ -173,14 +173,53 @@ resource "aws_instance" "Mongoinstance_1a" {
   subnet_id                   = "${aws_subnet.us_east_1a_private.id}"
   associate_public_ip_address = false
   source_dest_check           = false
-  user_data                   = "${file("install_mongoDB.sh")}"
+  user_data                   = "${data.template_file.user_data.rendered}"
+  depends_on = ["aws_instance.Mongo_Slave1" , "aws_instance.Mongo_Slave2"]
+  connection {
+    bastion_host = "3.86.205.194"
+    host         = "${self.private_ip}"
+    type         = "ssh"
+    user         = "ec2-user"
+    private_key  = "${file("key/opsworks.pem")}"
+  }
+
+  provisioner "file" {
+    source      = "mongod.conf"
+    destination = "/home/ec2-user/mongod.conf"
+  }
 
   tags {
-    Name = "Mongoinstace_1a_private"
+    Name = "Mongo_Master"
   }
 }
 
-resource "aws_instance" "Mongoinstance_1b" {
+# resource "null_resource" "mongo" {
+#   connection {
+#     bastion_host = "3.86.205.194"
+#     host         = "${aws_instance.Mongo_Master.private_ip}"
+#     type         = "ssh"
+#     user         = "ec2-user"
+#     private_key  = "${file("key/opsworks.pem")}"
+#   }
+
+#   # provisioner "remote-exec" {
+#   #   inline = [
+#   #     "echo \"rs.initiate()\" | mongo",
+#   #     "echo \"rs.add(\"${aws_instance.Mongo_Slave1.private_ip}\",\"27017\")\" | mongo",
+#   #     "echo \"rs.add(\"${aws_instance.Mongo_Slave2.private_ip}\",\"27017\")\" | mongo",
+#   #   ]
+#   # }
+#   depends_on = ["aws_instance.Mongo_Master"]
+# }
+data "template_file" "user_data" {
+  template = "${file("./install_mongoMaster.sh")}"
+  vars{
+    instance1 = "${aws_instance.Mongo_Slave1.private_ip}" 
+    instance2 = "${aws_instance.Mongo_Slave2.private_ip}"
+  }
+}
+
+resource "aws_instance" "Mongo_Slave1" {
   ami                         = "${var.ami}"                          # Amazon Linux AMI
   availability_zone           = "us-east-1b"
   instance_type               = "${var.instance_type}"
@@ -189,14 +228,14 @@ resource "aws_instance" "Mongoinstance_1b" {
   subnet_id                   = "${aws_subnet.us_east_1b_private.id}"
   associate_public_ip_address = false
   source_dest_check           = false
-  user_data                   = "${file("install_mongoDB.sh")}"
+  user_data                   = "${file("install_mongoSlave.sh")}"
 
   tags {
-    Name = "Mongoinstace_1b_private"
+    Name = "Mongo_Slave_1"
   }
 }
 
-resource "aws_instance" "Mongoinstance_1c" {
+resource "aws_instance" "Mongo_Slave2" {
   ami                         = "${var.ami}"                          # Amazon Linux AMI
   availability_zone           = "us-east-1c"
   instance_type               = "${var.instance_type}"
@@ -205,10 +244,10 @@ resource "aws_instance" "Mongoinstance_1c" {
   subnet_id                   = "${aws_subnet.us_east_1c_private.id}"
   associate_public_ip_address = false
   source_dest_check           = false
-  user_data                   = "${file("install_mongoDB.sh")}"
+  user_data                   = "${file("install_mongoSlave.sh")}"
 
   tags {
-    Name = "Mongoinstace_1c_private"
+    Name = "Mongo_Slave_2"
   }
 }
 
@@ -293,14 +332,14 @@ resource "aws_autoscaling_group" "Bastion" {
 }
 
 #output
-output "Mongo1_private_ip" {
-  value = "${aws_instance.Mongoinstance_1a.private_ip}"
+output "Mongo1a_private_ip" {
+  value = "${aws_instance.Mongo_Master.private_ip}"
 }
 
-output "Mongo2_private_ip" {
-  value = "${aws_instance.Mongoinstance_1b.private_ip}"
+output "Mongo1b_private_ip" {
+  value = "${aws_instance.Mongo_Slave1.private_ip}"
 }
 
-output "Mongo3_private_ip" {
-  value = "${aws_instance.Mongoinstance_1c.private_ip}"
+output "Mongo1c_private_ip" {
+  value = "${aws_instance.Mongo_Slave2.private_ip}"
 }

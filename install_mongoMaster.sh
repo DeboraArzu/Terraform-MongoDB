@@ -8,6 +8,12 @@ enabled=1
 gpgkey=https://www.mongodb.org/static/pgp/server-4.0.asc" | sudo tee /etc/yum.repos.d/mongodb-org-4.0.repo
 yum install -y mongodb-org
 yum install libcurl openssl
-service mongod start
+cp /home/ec2-user/mongod.conf /etc/mongod.conf
+rm -rf /var/lib/mongo/mongod.lock
+rm -rf /var/run/mongodb/mongod.pid
+service mongod restart
 chkconfig mongod on
 
+echo "rs.initiate()" | mongo
+echo "rs.add(\"${instance1}\",\"27017\")" | mongo
+echo "rs.add(\"${instance2}\",\"27017\")" | mongo

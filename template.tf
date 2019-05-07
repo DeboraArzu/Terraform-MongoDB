@@ -4,9 +4,9 @@ provider "aws" {
   region     = "${var.region}"
 }
 
-resource "aws_key_pair" "terraform-key" {
-  key_name   = "terraform-key"
-  public_key = "${file("./key/public_terraform.pem")}"
+resource "aws_key_pair" "terraform_ec2_key" {
+  key_name   = "terraform_ec2_key"
+  public_key = "${file("./key/terraform_ec2_key.pub")}"
 }
 
 resource "aws_vpc" "MongoVpc" {
@@ -218,6 +218,19 @@ resource "aws_instance" "Mongo_Slave1" {
   source_dest_check           = false
   user_data                   = "${file("./scripts/install_mongoSlave.sh")}"
 
+  connection {
+    bastion_host = "${aws_eip.eip_bastion.public_ip}"
+    host         = "${self.private_ip}"
+    type         = "ssh"
+    user         = "ec2-user"
+    private_key  = "${file("key/opsworks.pem")}"
+  }
+
+  provisioner "file" {
+    source      = "./configuration_files/mongod.conf"
+    destination = "/home/ec2-user/mongod.conf"
+  }
+
   tags {
     Name = "Mongo_Slave_1"
   }
@@ -233,6 +246,19 @@ resource "aws_instance" "Mongo_Slave2" {
   associate_public_ip_address = false
   source_dest_check           = false
   user_data                   = "${file("./scripts/install_mongoSlave.sh")}"
+
+  connection {
+    bastion_host = "${aws_eip.eip_bastion.public_ip}"
+    host         = "${self.private_ip}"
+    type         = "ssh"
+    user         = "ec2-user"
+    private_key  = "${file("key/opsworks.pem")}"
+  }
+
+  provisioner "file" {
+    source      = "./configuration_files/mongod.conf"
+    destination = "/home/ec2-user/mongod.conf"
+  }
 
   tags {
     Name = "Mongo_Slave_2"
@@ -390,6 +416,11 @@ resource "aws_iam_role_policy_attachment" "policy-attach" {
   policy_arn = "${aws_iam_policy.policy.arn}"
 }
 
+resource "aws_iam_instance_profile" "bastion_profile" {
+  name = "bastion_profile"
+  role = "${aws_iam_role.terraform_role.name}"
+}
+
 resource "aws_launch_configuration" "Bastion_LC" {
   name                        = "bastion_LC"
   image_id                    = "${var.ami}"
@@ -397,10 +428,9 @@ resource "aws_launch_configuration" "Bastion_LC" {
   key_name                    = "${var.aws_key_name}"
   security_groups             = ["${aws_security_group.BastionSG.id}"]
   associate_public_ip_address = false
-
-  #user_data       = "${file("./scripts/bastion_userdata.sh")}"
-  user_data  = "${data.template_file.user_data_bastion.rendered}"
-  depends_on = ["aws_eip.eip_bastion"]
+  user_data                   = "${data.template_file.user_data_bastion.rendered}"
+  depends_on                  = ["aws_eip.eip_bastion"]
+  iam_instance_profile        = "${aws_iam_instance_profile.bastion_profile.id}"
 }
 
 resource "aws_autoscaling_group" "Bastion" {
@@ -408,12 +438,6 @@ resource "aws_autoscaling_group" "Bastion" {
   min_size             = 1
   vpc_zone_identifier  = ["${aws_subnet.us_east_1a_public.id}", "${aws_subnet.us_east_1b_public.id}", "${aws_subnet.us_east_1c_public.id}"]
   launch_configuration = "${aws_launch_configuration.Bastion_LC.name}"
-
-  initial_lifecycle_hook {
-    name                 = "lifecycle"
-    lifecycle_transition = "autoscaling:EC2_INSTANCE_LAUNCHING"
-    role_arn             = "${aws_iam_role.terraform_role.arn}"
-  }
 
   tag {
     key                 = "Name"
@@ -427,14 +451,14 @@ output "Bastion_IP" {
   value = "${aws_eip.eip_bastion.public_ip}"
 }
 
-output "Mongo1a_private_ip" {
+output "Mongo_Master" {
   value = "${aws_instance.Mongo_Master.private_ip}"
 }
 
-output "Mongo1b_private_ip" {
+output "Mongo_Slave_1" {
   value = "${aws_instance.Mongo_Slave1.private_ip}"
 }
 
-output "Mongo1c_private_ip" {
+output "Mongo_Slave_2" {
   value = "${aws_instance.Mongo_Slave2.private_ip}"
 }

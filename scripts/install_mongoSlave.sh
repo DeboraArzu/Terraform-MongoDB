@@ -1,4 +1,4 @@
-#! /bin/bash
+#!/bin/bash
 yum update -y
 echo "[mongodb-org-4.0]
 name=MongoDB Repository
@@ -9,5 +9,7 @@ gpgkey=https://www.mongodb.org/static/pgp/server-4.0.asc" | sudo tee /etc/yum.re
 yum install -y mongodb-org
 yum install libcurl openssl
 cp /home/ec2-user/mongod.conf /etc/mongod.conf
-service mongod start
+rm -rf /var/lib/mongo/mongod.lock
+rm -rf /var/run/mongodb/mongod.pid
+service mongod restart
 chkconfig mongod on

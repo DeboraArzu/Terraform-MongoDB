@@ -1,4 +1,4 @@
-#! /bin/bash
+#!/bin/bash
 yum update -y
 echo "[mongodb-org-4.0]
 name=MongoDB Repository

@@ -1,5 +1,5 @@
 # AWS architecture
-![architecture](https://github.com/DeboraArzu/Terraform-MongoDB/architecture.jpg)
+![architecture](https://github.com/DeboraArzu/Terraform-MongoDB/blob/master/architecture.jpg "Diagram")
 
 # Initial Setup
 ```bash

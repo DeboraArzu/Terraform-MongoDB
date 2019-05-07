@@ -14,6 +14,7 @@ rm -rf /var/run/mongodb/mongod.pid
 service mongod restart
 chkconfig mongod on
 
+# Mongo Cluster setup
 echo "rs.initiate()" | mongo
 echo "rs.add(\"${instance1}\",\"27017\")" | mongo
 echo "rs.add(\"${instance2}\",\"27017\")" | mongo

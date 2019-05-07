@@ -119,7 +119,6 @@ resource "aws_subnet" "us_east_1c_private" {
 # Routing table for private subnets
 
 resource "aws_eip" "nat_1a" {
-  # instance = "${aws_instance.Mongo_Master.id}"
   vpc = true
 }
 
@@ -165,70 +164,55 @@ resource "aws_route_table_association" "us_east_1c_private" {
 
 # MongoDB in a Cluster 
 resource "aws_instance" "Mongo_Master" {
-  ami                         = "${var.ami}"                          # Amazon Linux AMI
+  ami                         = "${var.ami}"                                               # Amazon Linux AMI
   availability_zone           = "us-east-1a"
-  instance_type               = "${var.instance_type}"
+  instance_type               = "${var.instance_type_mongo}"
   key_name                    = "${var.aws_key_name}"
   security_groups             = ["${aws_security_group.MongSG.id}"]
   subnet_id                   = "${aws_subnet.us_east_1a_private.id}"
   associate_public_ip_address = false
   source_dest_check           = false
   user_data                   = "${data.template_file.user_data.rendered}"
-  depends_on = ["aws_instance.Mongo_Slave1" , "aws_instance.Mongo_Slave2"]
-  connection {
-    bastion_host = "3.86.205.194"
-    host         = "${self.private_ip}"
-    type         = "ssh"
-    user         = "ec2-user"
-    private_key  = "${file("key/opsworks.pem")}"
-  }
+  depends_on                  = ["aws_instance.Mongo_Slave1", "aws_instance.Mongo_Slave2"]
 
-  provisioner "file" {
-    source      = "mongod.conf"
-    destination = "/home/ec2-user/mongod.conf"
-  }
+  # connection {
+  #   bastion_host = "${aws_eip.eip_bastion.id}"
+  #   host         = "${self.private_ip}"
+  #   type         = "ssh"
+  #   user         = "ec2-user"
+  #   private_key  = "${file("key/opsworks.pem")}"
+  # }
+
+
+  # provisioner "file" {
+  #   source      = "./configuration_files/mongod.conf"
+  #   destination = "/home/ec2-user/mongod.conf"
+  # }
 
   tags {
     Name = "Mongo_Master"
   }
 }
 
-# resource "null_resource" "mongo" {
-#   connection {
-#     bastion_host = "3.86.205.194"
-#     host         = "${aws_instance.Mongo_Master.private_ip}"
-#     type         = "ssh"
-#     user         = "ec2-user"
-#     private_key  = "${file("key/opsworks.pem")}"
-#   }
-
-#   # provisioner "remote-exec" {
-#   #   inline = [
-#   #     "echo \"rs.initiate()\" | mongo",
-#   #     "echo \"rs.add(\"${aws_instance.Mongo_Slave1.private_ip}\",\"27017\")\" | mongo",
-#   #     "echo \"rs.add(\"${aws_instance.Mongo_Slave2.private_ip}\",\"27017\")\" | mongo",
-#   #   ]
-#   # }
-#   depends_on = ["aws_instance.Mongo_Master"]
-# }
 data "template_file" "user_data" {
-  template = "${file("./install_mongoMaster.sh")}"
-  vars{
-    instance1 = "${aws_instance.Mongo_Slave1.private_ip}" 
+  template = "${file("./scripts/install_mongoMaster.sh")}"
+
+  vars {
+    instance1 = "${aws_instance.Mongo_Slave1.private_ip}"
     instance2 = "${aws_instance.Mongo_Slave2.private_ip}"
   }
 }
 
 resource "aws_instance" "Mongo_Slave1" {
-  ami                         = "${var.ami}"                          # Amazon Linux AMI
+  ami                         = "${var.ami}"                                 # Amazon Linux AMI
   availability_zone           = "us-east-1b"
-  instance_type               = "${var.instance_type}"
+  instance_type               = "${var.instance_type_mongo}"
   key_name                    = "${var.aws_key_name}"
   security_groups             = ["${aws_security_group.MongSG.id}"]
   subnet_id                   = "${aws_subnet.us_east_1b_private.id}"
   associate_public_ip_address = false
   source_dest_check           = false
-  user_data                   = "${file("install_mongoSlave.sh")}"
+  user_data                   = "${file("./scripts/install_mongoSlave.sh")}"
 
   tags {
     Name = "Mongo_Slave_1"
@@ -236,21 +220,22 @@ resource "aws_instance" "Mongo_Slave1" {
 }
 
 resource "aws_instance" "Mongo_Slave2" {
-  ami                         = "${var.ami}"                          # Amazon Linux AMI
+  ami                         = "${var.ami}"                                 # Amazon Linux AMI
   availability_zone           = "us-east-1c"
-  instance_type               = "${var.instance_type}"
+  instance_type               = "${var.instance_type_mongo}"
   key_name                    = "${var.aws_key_name}"
   security_groups             = ["${aws_security_group.MongSG.id}"]
   subnet_id                   = "${aws_subnet.us_east_1c_private.id}"
   associate_public_ip_address = false
   source_dest_check           = false
-  user_data                   = "${file("install_mongoSlave.sh")}"
+  user_data                   = "${file("./scripts/install_mongoSlave.sh")}"
 
   tags {
     Name = "Mongo_Slave_2"
   }
 }
 
+# Security Groups
 resource "aws_security_group" "MongSG" {
   name        = "MongSG"
   description = "Allow the Bastion to SSH"
@@ -259,7 +244,14 @@ resource "aws_security_group" "MongSG" {
     from_port       = 22
     to_port         = 22
     protocol        = "tcp"
-    security_groups = ["${aws_security_group.BastionSG.id}"]
+    security_groups = ["${aws_security_group.BastionSG.id}"] # SSH just from the bastion
+  }
+
+  ingress {
+    from_port       = 0
+    to_port         = 0
+    protocol        = "-1"
+    security_groups = ["${aws_security_group.BastionSG.id}"] # all traffic just from the bastion
   }
 
   egress {
@@ -284,7 +276,7 @@ resource "aws_security_group" "BastionSG" {
     from_port   = 22
     to_port     = 22
     protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
+    cidr_blocks = ["0.0.0.0/0"] # All ssh traffic allow
   }
 
   egress {
@@ -302,13 +294,28 @@ resource "aws_security_group" "BastionSG" {
 }
 
 # Bastion in AutoScaling Group
-resource "aws_launch_template" "Bastion_LT" {
-  name                   = "bastion_LT"
-  image_id               = "${var.ami}"
-  instance_type          = "${var.instance_type}"
-  key_name               = "${var.aws_key_name}"
-  vpc_security_group_ids = ["${aws_security_group.BastionSG.id}"]
+resource "aws_eip" "eip_bastion" {
+  vpc               = true
+  network_interface = "${aws_network_interface.network_bastion.id}"
+}
 
+resource "aws_network_interface" "network_bastion" {
+  subnet_id = "${aws_subnet.us_east_1a_public.id}"
+}
+
+resource "aws_launch_template" "Bastion_LT" {
+  name          = "bastion_LT"
+  image_id      = "${var.ami}"
+  instance_type = "${var.instance_type}"
+  key_name      = "${var.aws_key_name}"
+
+  #vpc_security_group_ids = ["${aws_security_group.BastionSG.id}"]
+
+  network_interfaces {
+    associate_public_ip_address = false
+    network_interface_id        = "${aws_network_interface.network_bastion.id}"
+    security_groups             = ["${aws_security_group.BastionSG.id}"]
+  }
   tags = {
     Name = "Bastion_LT"
   }

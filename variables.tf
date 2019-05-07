@@ -8,7 +8,7 @@ variable "region" {
 }
 
 variable "ami" {
-  default = "ami-0080e4c5bc078760e"
+  default     = "ami-0080e4c5bc078760e"
   description = "Amazon Linux AMI 2018.03.0 (HVM), SSD Volume Type"
 }
 
@@ -16,3 +16,6 @@ variable "instance_type" {
   default = "t2.micro"
 }
 
+variable "instance_type_mongo" {
+  default = "t2.large"
+}

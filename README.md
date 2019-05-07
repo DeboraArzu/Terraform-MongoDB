@@ -1,5 +1,5 @@
 # AWS architecture
-The architecture show below was created using terraform and AWS as provider.
+The architecture shown below was created using terraform and AWS as provider.
 
 ![architecture](https://github.com/DeboraArzu/Terraform-MongoDB/blob/master/architecture.jpg "Diagram")
 
@@ -11,6 +11,7 @@ terraform apply -var 'access_key=PUBLIC_KEY' -var 'secret_key=SECRET_KEY' -var '
 ```
 # MongoDB
 This project was created to develop a MongoDB Cluster. The master and two slaves, all in different availability zones, as shown below
+
 ![Mongo Cluster](https://github.com/DeboraArzu/Terraform-MongoDB/blob/master/mongo_cluster.jpg "Mongo Cluster")
 
 The setup for mongoDB is inside the scripts directory , there are two different scripts one for the MongoDB Master and other one for the slaves.

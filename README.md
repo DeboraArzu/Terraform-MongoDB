@@ -14,12 +14,12 @@ This project was created to develop a MongoDB Cluster. The master and two slaves
 
 ![Mongo Cluster](https://github.com/DeboraArzu/Terraform-MongoDB/blob/master/mongo_cluster.jpg "Mongo Cluster")
 
-The setup for mongoDB is inside the scripts directory , there are two different scripts one for the MongoDB Master and other one for the slaves.
+The setup for mongoDB is inside the [scripts directory](https://github.com/DeboraArzu/Terraform-MongoDB/tree/master/scripts "scripts directory") , there are two different scripts one for the MongoDB Master and other one for the slaves.
 
 Also as part of the setup in the configuration_files directory there is a mongod.conf file with the proper configuration for the MongoDB Cluster.
 
 ## Setup
-To setup the mongo cluster it is necesary to change the mongod.conf file.
+To setup the mongo cluster it is necesary to change the [mongod.conf](http://https://github.com/DeboraArzu/Terraform-MongoDB/tree/master/configuration_files "somethis") file.
 ```
 # network interfaces
 net:

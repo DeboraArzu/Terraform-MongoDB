@@ -33,14 +33,17 @@ net:
 replication:
     replSetName: "mongoreplica"
 ```
-After mongo is already install in the three instances, the following script is run on the master mongo instance.
+After mongo is already install in the three instances, the following script is executed on the master mongo instance.
 ```bash
 echo "rs.initiate()" | mongo
 echo "rs.add(\"${INSTANCE1}\",\"27017\")" | mongo
 echo "rs.add(\"${INSTANCE2}\",\"27017\")" | mongo
 ```
 
+The first command sets mongo as the master, after this in the mongo shell should appear the word PRIMARY.
+The next two commands are to add the slaves.
+
 # CleanUp
-The following command is used to eliminate all created resources.
+The following command is used to delete all created resources.
 
     terraform destroy -var 'access_key=PUBLIC_KEY' -var 'secret_key=SECRET_KEY' -var 'aws_key_name= KEY_NAME'

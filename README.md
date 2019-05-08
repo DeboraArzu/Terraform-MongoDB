@@ -1,18 +1,27 @@
 # AWS architecture
+The architecture shown below was created using terraform and AWS as provider.
+
 ![architecture](https://github.com/DeboraArzu/Terraform-MongoDB/blob/master/architecture.jpg "Diagram")
 
-The architecture show above was created using terraform and AWS as provider.
 
 # Initial Setup
+To create all the resources it is necessary to have the public key and secret key of an AWS user and the key pair name to create the resources and ssh into the bastion.
+
 ```bash
 terraform init
 terraform apply -var 'access_key=PUBLIC_KEY' -var 'secret_key=SECRET_KEY' -var 'aws_key_name= KEY_NAME'
 ```
 # MongoDB
-The setup for mongoDB is inside the scripts directory , there are two different scripts one for the MongoDB Master and other one for the slaves.
+This project was created to develop a MongoDB Cluster. The master and two slaves, all in different availability zones, as shown below
+
+![Mongo Cluster](https://github.com/DeboraArzu/Terraform-MongoDB/blob/master/mongo_cluster.jpg "Mongo Cluster")
+
+The setup for mongoDB is inside the [scripts directory](https://github.com/DeboraArzu/Terraform-MongoDB/tree/master/scripts "scripts directory") , there are two different scripts one for the MongoDB Master and other one for the slaves.
+
 Also as part of the setup in the configuration_files directory there is a mongod.conf file with the proper configuration for the MongoDB Cluster.
+
 ## Setup
-To setup the mongo cluster it is necesary to change the mongod.conf file.
+To setup the mongo cluster it is necesary to change the [mongod.conf](https://github.com/DeboraArzu/Terraform-MongoDB/tree/master/configuration_files "mongod.conf") file.
 ```
 # network interfaces
 net:
@@ -26,12 +35,17 @@ net:
 replication:
     replSetName: "mongoreplica"
 ```
-After mongo is already install in the 3 instances, the following script is run on the master mongo instances.
+After mongo is already install in the three instances, the following script is executed on the master mongo instance.
 ```bash
 echo "rs.initiate()" | mongo
 echo "rs.add(\"${INSTANCE1}\",\"27017\")" | mongo
 echo "rs.add(\"${INSTANCE2}\",\"27017\")" | mongo
 ```
 
+The first command sets mongo as the master, after this in the mongo shell should appear the word PRIMARY.
+The next two commands are to add the slaves.
+
 # CleanUp
+The following command is used to delete all created resources.
+
     terraform destroy -var 'access_key=PUBLIC_KEY' -var 'secret_key=SECRET_KEY' -var 'aws_key_name= KEY_NAME'

@@ -212,6 +212,7 @@ resource "aws_instance" "Mongo_Slave1" {
   associate_public_ip_address = false
   source_dest_check           = false
   user_data                   = "${file("./scripts/install_mongoSlave.sh")}"
+  depends_on                  = ["aws_nat_gateway.Nat_GW"]
 
   connection {
     bastion_host = "${aws_eip.eip_bastion.public_ip}"
@@ -241,6 +242,7 @@ resource "aws_instance" "Mongo_Slave2" {
   associate_public_ip_address = false
   source_dest_check           = false
   user_data                   = "${file("./scripts/install_mongoSlave.sh")}"
+  depends_on                  = ["aws_nat_gateway.Nat_GW"]
 
   connection {
     bastion_host = "${aws_eip.eip_bastion.public_ip}"

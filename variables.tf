@@ -17,5 +17,5 @@ variable "instance_type" {
 }
 
 variable "instance_type_mongo" {
-  default = "t2.large"
+  default = "m4.xlarge"
 }

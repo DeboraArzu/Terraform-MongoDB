@@ -19,7 +19,7 @@ The setup for mongoDB is inside the [scripts directory](https://github.com/Debor
 Also as part of the setup in the configuration_files directory there is a mongod.conf file with the proper configuration for the MongoDB Cluster.
 
 ## Setup
-To setup the mongo cluster it is necesary to change the [mongod.conf](http://https://github.com/DeboraArzu/Terraform-MongoDB/tree/master/configuration_files "somethis") file.
+To setup the mongo cluster it is necesary to change the [mongod.conf](https://github.com/DeboraArzu/Terraform-MongoDB/tree/master/configuration_files "mongod.conf") file.
 ```
 # network interfaces
 net:

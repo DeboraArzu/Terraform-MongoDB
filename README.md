@@ -7,6 +7,8 @@ The architecture shown below was created using terraform and AWS as provider.
 # Initial Setup
 To create all the resources it is necessary to have the public key and secret key of an AWS user and the key pair name to create the resources and ssh into the bastion.
 
+I used opsworks.pem so you can either set aws_key_name = opsworks or change the key and added it to the key directory and change the private key name on the connection inside the Mongo_Slave1.
+
 ```bash
 terraform init
 terraform apply -var 'access_key=PUBLIC_KEY' -var 'secret_key=SECRET_KEY' -var 'aws_key_name= KEY_NAME'
